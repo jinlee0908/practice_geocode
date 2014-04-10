@@ -3,7 +3,7 @@
 
 These are the steps to get the system up and running: 
 
-1. Alter gitignore
+1. Add to gitignore
 
   #Ignore Additional
 
@@ -81,9 +81,81 @@ These are the steps to get the system up and running:
     (Name of Application)::Application.config.secret_key_base = secure_token
 
 5. Enter : rails g rspec:install to config rails to use rspec instead of default Unit Test
+    creates a .rspec
+              spec (folder)
+              spec/spec_helper.rb
 
+6. Revised: Enter rails g scaffold Location address:string latitude:float longitude:float
+      invoke  active_record
+      create    db/migrate/20140410200849_create_locations.rb
+      create    app/models/location.rb
+      invoke    rspec
+      create      spec/models/location_spec.rb
+      invoke  resource_route
+       route    resources :locations
+      invoke  jbuilder_scaffold_controller
+      create    app/controllers/locations_controller.rb
+      invoke    erb
+      create      app/views/locations
+      create      app/views/locations/index.html.erb
+      create      app/views/locations/edit.html.erb
+      create      app/views/locations/show.html.erb
+      create      app/views/locations/new.html.erb
+      create      app/views/locations/_form.html.erb
+      invoke    rspec
+      create      spec/controllers/locations_controller_spec.rb
+      create      spec/views/locations/edit.html.erb_spec.rb
+      create      spec/views/locations/index.html.erb_spec.rb
+      create      spec/views/locations/new.html.erb_spec.rb
+      create      spec/views/locations/show.html.erb_spec.rb
+      create      spec/routing/locations_routing_spec.rb
+      invoke      rspec
+      create        spec/requests/locations_spec.rb
+      invoke    helper
+      create      app/helpers/locations_helper.rb
+      invoke      rspec
+      create        spec/helpers/locations_helper_spec.rb
+      invoke    jbuilder
+       exist      app/views/locations
+      create      app/views/locations/index.json.jbuilder
+      create      app/views/locations/show.json.jbuilder
+      invoke  assets
+      invoke    coffee
+      create      app/assets/javascripts/locations.js.coffee
+      invoke    scss
+      create      app/assets/stylesheets/locations.css.scss
+      invoke  scss
+      create    app/assets/stylesheets/scaffolds.css.scss
 
+6. ###Enter: rails g model location address:string latitude:float longitude:float
+    created locations table
+    app/model/location.rb
+    spec/model/location_spec.rb
 
+7. Entered - note maybe change this to Pages: rails g controller StaticPages home search_list --no-test-framework
+  To get the views for the home and search_list pages
+  good or bad this is what generated - this include default routes to home and search_lists:
+    create  app/controllers/static_pages_controller.rb
+       route  get "static_pages/search_list"
+       route  get "static_pages/home"
+      invoke  erb
+      create    app/views/static_pages
+      create    app/views/static_pages/home.html.erb
+      create    app/views/static_pages/search_list.html.erb
+      invoke  helper
+      create    app/helpers/static_pages_helper.rb
+      invoke  assets
+      invoke    coffee
+      create      app/assets/javascripts/static_pages.js.coffee
+      invoke    scss
+      create      app/assets/stylesheets/static_pages.css.scss
+
+8. Enter: rails g integration_test static_pages
+    This creates an rspec pages test file
+    invoke  rspec
+    create    spec/requests/static_pages_spec.rb
+
+9. Created 'check home page test'
 
 This README would normally document whatever steps are necessary to get the
 application up and running.
