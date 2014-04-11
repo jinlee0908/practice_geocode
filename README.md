@@ -128,9 +128,11 @@ These are the steps to get the system up and running:
       create    app/assets/stylesheets/scaffolds.css.scss
 
 6. ###Enter: rails g model location address:string latitude:float longitude:float
-    created locations table
-    app/model/location.rb
-    spec/model/location_spec.rb
+    invoke  active_record
+    create    db/migrate/20140410220518_create_locations.rb
+    create    app/models/location.rb
+    invoke    rspec
+    create      spec/models/location_spec.rb
 
 7. Entered - note maybe change this to Pages: rails g controller StaticPages home search_list --no-test-framework
   To get the views for the home and search_list pages
@@ -155,7 +157,34 @@ These are the steps to get the system up and running:
     invoke  rspec
     create    spec/requests/static_pages_spec.rb
 
-9. Created 'check home page test'
+9. Created 'check home and search_list page tests in static_pages_spec'
+
+10. Add a line to include Capybara DSL to Rspec helper file
+  RSpec.configure do |config|
+  .
+  .
+    config.include Capybara::DSL
+  end
+
+11. Revised application page tests to incorporate provide title helpers
+  was done in the application.html.erb (added the title change)
+  and then the title and provide ruby code was added
+
+12. Added a title helper in the app/helpers/application_helper
+  module ApplicationHelper
+    def full_title(page_title)
+      base_title = "Garden Exchange"
+      if page_title.empty?
+        base_title
+      else
+        "#{base_title} | #{page_title}"
+      end
+    end
+  end
+
+13. Revised tests and home and search_list pages
+
+
 
 This README would normally document whatever steps are necessary to get the
 application up and running.
