@@ -184,6 +184,295 @@ These are the steps to get the system up and running:
 
 13. Revised tests and home and search_list pages
 
+==================================================================
+
+GEOLOCATION: 
+
+1. Created an view index file for the locations
+  <ul class="locations">
+  <% @locations.each do |location| %>
+  <li data-id="<%= location.id %>"> <p><%= location.name %></p>
+  <p>
+  <%= location.street_line_1 %><br>
+  <%= location.street_line_2 %><br>
+  <%= location.city %>, <%= location.state %> <%= location.postal_code %>
+  </p> </li>
+  <% end %> </ul>
+
+2. Created a controller location 
+  def index
+  @locations = Location.all
+  end
+
+3. Added to the model location except I switched store_number to item.location
+
+  class Location < ActiveRecord::Base 
+    validates :store_number, uniqueness: true
+  end
+
+Going to add Plot Points 
+
+4. Create a namespace for the application
+  # app/assets/javascripts/base.coffee
+    @ExampleApp = {}
+
+5. Render a javascript partial in the application layout body : app/views/application/_javascript.html.erb
+
+  <%= javascript_include_tag "application", "data-turbolinks-track" => true %> 
+  <%= yield :javascript %>
+
+6. Insert the javascript partial into the application layout
+    body>
+      <div class="container">
+        <%= yield %> 
+      </div>
+        <%= render 'javascript' %> 
+    </body>
+
+7. Create a Mapper javascript/coffee to display the map on the page with markers placed at correct coordinates
+  
+  Class @PracticeApp.Mapper 
+
+    constructor: (cssSelector) ->
+      @cssSelector = cssSelector
+      @map = null
+      @bounds = new PracticeApp.MapBounds
+
+    addCoordinates: (latitude, longitude) ->
+      if !_.isEmpty(latitude) and !_.isEmpty(longitude)
+        @bounds.add(latitude, longitude)
+
+    render: =>
+      @map = new PracticeApp.Map(@cssSelector, @bounds)
+      @map.build()
+
+8. Create a MapBound javascript/coffee for a simple interface for interacting with Google rep. of coordinates and bounds.
+
+  class @PracticeApp.MapBounds
+
+  constructor: ->
+    @googleLatLngBounds = new google.maps.LatLngBounds()
+    @latLngs = []
+
+  add: (latitude, longitude) ->
+    latLng = new google.maps.LatLng(latitude, longitude)
+    @googleLatLngBounds.extend(latLng)
+    @latLngs.push(latLng)
+
+  getCenter: ->
+    @googleLatLngBounds.getCenter()
+    
+9. Create a Map javascript/coffee for a simple interface to Google Maps Javascript API for rendering a responsive map
+
+  class @PracticeApp.Map
+    constructor: (cssSelector, bounds) ->
+      @googleMap = new google.maps.Map($(cssSelector)[0], @_mapOptions())
+      @bounds = bounds
+
+      $(window).on 'resize', =>
+        google.maps.event.trigger(@googleMap, 'resize')
+        @_updateCenter()
+
+    build: ->
+      @_updateCenter()
+      @_plotCoordinates()
+
+    _updateCenter: ->
+      @googleMap.fitBounds @bounds.googleLatLngBounds
+      @googleMap.setCenter @bounds.getCenter()
+
+    _plotCoordinates: ->
+      for latLng in @bounds.latLngs
+        new google.maps.Marker(position: latLng, map: @googleMap)
+
+    _mapOptions: ->
+      zoom: 13
+      mapTypeId: google.maps.MapTypeId.SATELLITE
+
+10. added function in view to instantiate a Mapper and called  addCoordinates and render displays map and plot location
+
+    <div id="map" style="height: 400px;"></div>
+    <ul class="locations">
+      <% @locations.each do |location| %>
+        <%= render location %> 
+      <% end %>
+    </ul>
+
+    <% content_for :javascript do %>
+      <script type="text/javascript"
+        src="//maps.googleapis.com/maps/api/js?sensor=false"></script>
+    <%= javascript_tag do %> 
+      $(function() {
+        var mapper = new Practice.Mapper('#map');
+
+        $('[data-latitude]').each(function(index, element) {
+          mapper.addCoordinates(
+            $(element).attr('data-latitude'),
+            $(element).attr('data-longitude') 
+            );
+          });
+          mapper.render();
+        });
+      <% end %>
+    <% end %>
+
+11.  add we're doing something with another partial - but not sure how to tie this together
+  app/views/locations/_location.html.erb:
+
+  <%= content_tag_for :li, location,
+    data: { latitude: location.latitude, longitude: location.longitude } do %>
+
+    <header>
+      <h1 data-role="name"><%= location.name %></h1> 
+        <% if location.respond_to?(:distance) %>
+      <h2 data-role="distance"><%= location.distance.round(1) %> mi</h2> 
+      <% end %>
+
+    </header> 
+
+    <section>
+      <section class="location-info">
+        <p data-role="address"><%= location.address %></p><br> 
+        <p data-role="phone-number">
+          <%= link_to location.phone_number, "tel:#{location.phone_number}" %> 
+        </p>
+      </section>
+    </section> 
+    
+  <% end %>
+
+12. Now refactor so that I don't have to deal with a postal code - removed a method and postal code reference
+  app/controllers/locations_controller.rb: 
+
+    class LocationsController < ApplicationController 
+      
+      def index
+        @locations =  if search_value.present?
+                        Location.near(search_value) 
+                      else
+                        Location.all
+                      end 
+      end
+
+      private
+      
+      def search_value
+        params[:search] && params[:search][:value]
+      end
+
+    end
+
+13. Now updateing app/model/location.rb to again remove postal code etc. 
+
+  class Location < ActiveRecord::Base
+
+    validates :store_number, uniqueness: true
+    geocoded_by :address
+    after_validation :geocode
+
+    private
+
+    def address
+      [street_line_1, street_line_2, city, state,
+      postal_code, country_code].compact.join ', ' 
+    end
+  end
+
+14. The geocoder gem extends the request object within Rails controllers with a new method, #location, which exposes information about both city and state. By creating a new class, RequestGeocodingGatherer, to handle calculating city and state, we’re able to keep this logic out of the controller and have small classes, each with their own responsibility:
+
+  app/models/request_geocoding_gatherer.rb
+
+  class RequestGeocodingGatherer 
+
+    def initialize(request)
+      @request = request 
+    end
+
+    def current_location 
+      if city && state
+        [city, state].join ', ' 
+      else
+        ''
+     end
+   end
+
+    private
+
+    delegate :city, :state, to: :location
+    delegate :location, to: :@request
+  
+  end
+
+15. Updated the controller to account for this new class. The new class will retrieve the current location string from the request
+  app/controllers/locations_controller.rb : 
+
+  class LocationsController < ApplicationController 
+    class_attribute :request_geocoding_gatherer
+    self.request_geocoding_gatherer = RequestGeocodingGatherer
+    
+    def index
+      @current_location_by_ip = geocoded_request_information.current_location
+
+      @locations =  if search_value.present?
+                      Location.near(search_value) 
+                    else
+                      Location.all
+                    end 
+    end
+
+    private
+
+    def search_value
+      params[:search] && params[:search][:value]
+    end
+
+    def geocoded_request_information
+      request_geocoding_gatherer.new(request)
+    end
+  end
+
+16. update the form with the new ability to locate address with geolocator
+  app/views/locations/index.html.erb: 
+
+17. Added  javascript to index file to pull geolocation from the user rather than the site. 
+  $(function() {
+  if (_.isEmpty($('#search_value').attr('placeholder'))) {
+    var currentLocation = new PracticeApp.CurrentLocation();
+    currentLocation.getLocation(function(location) {
+    $('#search_value').attr('placeholder', location);
+      })
+    } 
+  });
+
+18. Create a new javascript/coffee file for the current location getter and defautl location setter.. 
+
+  class @PracticeApp.CurrentLocation
+    @DEFAULT_LOCATION = 'Portland, OR'
+
+    constructor: (deferredResolution) ->
+      @deferredResolution = deferredResolution || (defer) =>
+      navigator.geolocation.getCurrentPosition(
+        @_reverseGeocodeLocation(defer), defer.reject
+      )
+
+    getLocation: (callback) =>
+      successCallback = (value) -> callback(value)
+      failureCallback = (value) -> callback(PracticeApp.CurrentLocation.DEFAULT_LOCATION)
+
+      $.Deferred(@deferredResolution).then(successCallback, failureCallback)
+
+    _reverseGeocodeLocation: (deferred) => 
+      (geoposition) =>
+        reverseGeocoder = new PracticeApp.ReverseGeocoder(
+          geoposition.coords.latitude,
+          geoposition.coords.longitude
+        ) 
+        reverseGeocoder.location(deferred)
+
+19. Create reversegeocoder javascript/coffee to handle interactions with the external geocoder service
+  app/assets/javascripts/reverse_geocoder.coffee:
+  
+
 
 
 This README would normally document whatever steps are necessary to get the

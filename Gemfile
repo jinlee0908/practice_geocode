@@ -1,7 +1,4 @@
 source 'https://rubygems.org'
-
-
-source 'https://rubygems.org'
 ruby '2.0.0'
 
 gem 'rails', '4.0.4'
@@ -19,6 +16,7 @@ gem 'jquery-rails', '3.0.4'
 gem 'turbolinks', '1.1.1'
 gem 'jbuilder', '1.0.2'
 gem 'geocoder', '1.1.9'
+gem 'json', '1.8.1'
 
 group :development, :test do
   gem 'sqlite3', '1.3.8'

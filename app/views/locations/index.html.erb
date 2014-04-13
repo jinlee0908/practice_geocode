@@ -1,0 +1,43 @@
+
+<%= form_for :search, method: :get, url: root_path do |form| %>
+  <%= form.label :value, 'Search by Location' %> 
+  <%= form.text_field :value, placeholder: @current_location_by_ip %>
+  <%= form.submit 'Search' %>
+<% end %>
+
+<div id="map" style="height: 400px;"></div>
+<ul class="locations">
+  <% @locations.each do |location| %>
+    <%= render 'location' %> 
+  <% end %>
+</ul>
+
+<% content_for :javascript do %>
+  <script type="text/javascript"
+    src="//maps.googleapis.com/maps/api/js?sensor=false"></script>
+
+<%= javascript_tag do %>
+  $(function() {
+    if (_.isEmpty($('#search_value').attr('placeholder'))) {
+      var currentLocation = new PracticeApp.CurrentLocation();
+      currentLocation.getLocation(function(location) {
+      $('#search_value').attr('placeholder', location);
+      })
+     } 
+  }); 
+  $(function() {
+    var mapper = new PracticeApp.Mapper('#map');
+
+    $('[data-latitude]').each(function(index, element) {
+      mapper.addCoordinates(
+        $(element).attr('data-latitude'),
+        $(element).attr('data-longitude') 
+        );
+      });
+      mapper.render();
+    });
+  <% end %>
+<% end %>
+
+
+

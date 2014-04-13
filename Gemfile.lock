@@ -1,6 +1,5 @@
 GEM
   remote: https://rubygems.org/
-  remote: https://rubygems.org/
   specs:
     actionmailer (4.0.4)
       actionpack (= 4.0.4)
@@ -202,6 +201,7 @@ DEPENDENCIES
   guard-rspec (= 2.5.0)
   jbuilder (= 1.0.2)
   jquery-rails (= 3.0.4)
+  json (= 1.8.1)
   pg (= 0.15.1)
   rails (= 4.0.4)
   rails_12factor (= 0.0.2)
